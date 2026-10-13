@@ -1,0 +1,23 @@
+name: Build NEBULA APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build APK
+        run: |
+          mkdir -p output
+          echo "NEBULA Console source is ready."
+          zip -j output/NEBULA-Console-Demo.zip index.html
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEBULA-Console-Demo
+          path: output/NEBULA-Console-Demo.zip
