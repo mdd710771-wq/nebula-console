@@ -6,18 +6,53 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Get source
         uses: actions/checkout@v4
 
-      - name: Build APK
-        run: |
-          mkdir -p output
-          echo "NEBULA Console source is ready."
-          zip -j output/NEBULA-Console-Demo.zip index.html
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-      - name: Upload build
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/java/com/nebula/console
+          cp index.html app/src/main/assets/index.html
+
+          echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@android:style/Theme.Material.NoActionBar" android:label="NEBULA X CONSOLE"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+
+          cat > app/src/main/java/com/nebula/console/MainActivity.java <<'EOF'
+          package com.nebula.console;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          public class MainActivity extends Activity {
+            public void onCreate(Bundle b) {
+              super.onCreate(b);
+              WebView w = new WebView(this);
+              w.getSettings().setJavaScriptEnabled(true);
+              w.loadUrl("file:///android_asset/index.html");
+              setContentView(w);
+            }
+          }
+          EOF
+
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
+          echo "plugins { id 'com.android.application' }; android { namespace 'com.nebula.console'; compileSdk 35; defaultConfig { applicationId 'com.nebula.console'; minSdk 23; targetSdk 28; versionCode 1; versionName '1.0' } }" > app/build.gradle
+
+      - name: Build APK
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEBULA-Console-Demo
-          path: output/NEBULA-Console-Demo.zip
+          name: NEBULA-Console-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
