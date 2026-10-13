@@ -15,7 +15,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v5
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -24,12 +24,16 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
       - name: Check HTML file
         run: |
-          test -f index.html || {
-            echo "ERROR: index.html পাওয়া যায়নি"
+          if [ ! -f index.html ]; then
+            echo "ERROR: index.html file not found in repository root"
             exit 1
-          }
+          fi
 
       - name: Create Android project
         run: |
@@ -86,8 +90,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
                   android:theme="@android:style/Theme.Material.NoActionBar"
-                  android:label="NEBULA X CONSOLE"
-                  android:usesCleartextTraffic="true">
+                  android:label="NEBULA X CONSOLE">
                   <activity
                       android:name=".MainActivity"
                       android:exported="true">
@@ -112,21 +115,18 @@ jobs:
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-
                   WebView webView = new WebView(this);
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
-
                   webView.setBackgroundColor(0xFF0A0F0A);
                   webView.loadUrl("file:///android_asset/index.html");
-
                   setContentView(webView);
               }
           }
           EOF
 
-      - name: Build Debug APK
+      - name: Build APK
         run: |
           gradle --no-daemon --stacktrace assembleDebug
 
